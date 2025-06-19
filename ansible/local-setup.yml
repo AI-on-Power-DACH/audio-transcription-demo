@@ -1,0 +1,20 @@
+- name: Download relevant playbooks and task files
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Create directory for support files
+      ansible.builtin.file:
+        path: "./support"
+        state: directory
+        mode: 0775
+        recurse: yes
+
+    - name: Download files
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.dest }}"
+        mode: 0775
+      loop:
+        - { url: "https://raw.githubusercontent.com/AI-on-Power-DACH/ai-on-ibm-power-playbooks/refs/heads/main/playbooks/basic-whisper.cpp.yml", dest: "." }
+        - { url: "https://raw.githubusercontent.com/AI-on-Power-DACH/ai-on-ibm-power-playbooks/refs/heads/main/playbooks/support/download-and-extract-micromamba.yml", dest: "./support" }
+        - { url: "https://raw.githubusercontent.com/AI-on-Power-DACH/ai-on-ibm-power-playbooks/refs/heads/main/playbooks/support/template.service", dest: "./support" }
