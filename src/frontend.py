@@ -48,7 +48,7 @@ def send_request(url: str, audio_path: str) -> str:
 def main(host: str = "0.0.0.0", port: int = 7860):
     title = "Audio Transcription Demo"
 
-    with gr.Blocks(title=title, theme=IBMTheme(), css=custom_css) as demo:
+    with gr.Blocks(title=title) as demo:
         gr.Markdown(f"# {title}")
         with gr.Accordion(label="Advanced Settings", open=False):
             url_box = gr.Textbox(label="Please enter the backend url", value="http://0.0.0.0:8080/inference")
@@ -60,10 +60,9 @@ def main(host: str = "0.0.0.0", port: int = 7860):
                 waveform_color="#a6c8ff",
                 waveform_progress_color="#0F62FE",
                 skip_length=2,
-                show_controls=False,
             ),
         )
-        transcribed_text = gr.Textbox(label="Transcribed audio text:")
+        transcribed_text = gr.Textbox(label="Transcribed audio text:", lines=7)
         extract_btn = gr.Button("Send request", variant="primary")
         extract_btn.click(
             fn=send_request,
@@ -72,7 +71,7 @@ def main(host: str = "0.0.0.0", port: int = 7860):
             api_name="send_request",
         )
 
-    demo.launch(server_name=host, server_port=port, debug=True)
+    demo.launch(server_name=host, server_port=port, theme=IBMTheme(), css=custom_css)
 
 
 if __name__ == "__main__":

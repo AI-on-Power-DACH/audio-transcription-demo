@@ -33,6 +33,17 @@
             - --yes
             - "--root-prefix={{ frontend_prefix }}"
             - "--prefix={{ frontend_prefix }}"
+            - --channel=defaults
+            - "python={{ python_version }}"
+      
+      - name: Install dependencies from anaconda
+        ansible.builtin.command:
+          argv:
+            - micromamba
+            - install
+            - --yes
+            - "--root-prefix={{ frontend_prefix }}"
+            - "--prefix={{ frontend_prefix }}"
             - --channel=rocketce
             - --channel=defaults
             - "python={{ python_version }}"
@@ -40,11 +51,24 @@
             - numpy
             - pillow
             - uvicorn
+        when: not use_pip | default(true) | bool
+      
+      - name: Install dependencies from devpi
+        ansible.builtin.shell: |
+          {{ frontend_prefix }}/bin/python -m pip install \
+            --prefer-binary \
+            --extra-index-url https://wheels.developerfirst.ibm.com/ppc64le/linux \
+            fastapi \
+            numpy \
+            pillow \
+            uvicorn
+        when: use_pip | default(true) | bool
 
       - name: Install gradio and its dependencies
         ansible.builtin.shell: |
           {{ frontend_prefix }}/bin/python -m pip install \
-            gradio;
+            gradio \
+            requests
 
       - name: Copy frontend-related files
         ansible.builtin.copy:
@@ -56,15 +80,6 @@
           - { src: "../src/frontend.py", dest: "{{ working_directory }}/frontend.py" }
           - { src: "../src/ibm_theme.py", dest: "{{ working_directory }}/ibm_theme.py" }
 
-      - name: Copy systemd service template for frontend
-        ansible.builtin.copy:
-          src: support/template.service
-          dest: /etc/systemd/system/audio-transcription-frontend.service
-          owner: "{{ ansible_user }}"
-          mode: u=rw,g=r,o=rwx
-        become: true
-        become_user: root
-
       - name: Build frontend service parameter list
         ansible.builtin.set_fact:
           frontend_parameters: >-
@@ -73,19 +88,26 @@
               {% set ignored = result.extend(["--" + key, frontend_argv[key] or ""]) -%}
             {%- endfor %}
             {{ result | join(" ") }}
-
-      - name: Insert service information into frontend service file
+      
+      - name: Create systemd service for frontend
         become: true
         become_user: root
-        ansible.builtin.lineinfile:
+        ansible.builtin.blockinfile:
+          create: true
+          mode: u=rw,g=r,o=r
+          owner: "{{ ansible_user }}"
           path: /etc/systemd/system/audio-transcription-frontend.service
-          regexp: "{{ item.regexp }}"
-          line: "{{ item.line }}"
-          backrefs: yes
-        loop:
-          - { regexp: "^Description=(.*)$", line: "Description=Audio Transcription Frontend Service" }
-          - { regexp: "^ExecStart=(.*)$", line: "ExecStart={{ frontend_prefix }}/bin/python {{ working_directory }}/frontend.py {{ frontend_parameters }}" }
-          - { regexp: "^User=(.*)$", line: "User={{ ansible_user }}" }
+          block: |
+            [Unit]
+            Description=Audio Transcription Frontend Service
+
+            [Service]
+            Type=simple
+            ExecStart={{ frontend_prefix }}/bin/python {{ working_directory }}/frontend.py {{ frontend_parameters }}
+            User={{ ansible_user }}
+
+            [Install]
+            WantedBy=multi-user.target
 
       - name: Set frontend service state
         ansible.builtin.systemd_service:

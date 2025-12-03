@@ -34,7 +34,6 @@ class IBMTheme(Base):
         font: fonts.Font
         | str
         | list[fonts.Font | str] = (
-            "IBM Plex Serif",
             fonts.GoogleFont("IBM Plex Serif"),
             "ui-sans-serif",
             "sans-serif",
@@ -42,7 +41,6 @@ class IBMTheme(Base):
         font_mono: fonts.Font
         | str
         | list[fonts.Font | str] = (
-            "IBM Plex Mono",
             fonts.GoogleFont("IBM Plex Mono"),
             "ui-monospace",
             "monospace",
